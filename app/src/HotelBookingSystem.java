@@ -1,7 +1,7 @@
 /**
  MAIN CLASS: HotelBookingApp
 
- Use Case 11: Concurrent Booking Simulation
+ Use Case 12: Data Persistence & System Recovery
 
  Description:
  This class represents the entry point of the
@@ -11,58 +11,73 @@
  application startup.
 
  @author Pushkar Rathi
- @version 11.0
+ @version 12.0
  */
 
+import java.io.*;
 import java.util.*;
 
 class RoomInventory {
-    private Map<String, Integer> rooms;
+    Map<String, Integer> rooms;
 
     public RoomInventory() {
         rooms = new HashMap<>();
-        rooms.put("Single", 2);
-        rooms.put("Double", 2);
-        rooms.put("Suite", 1);
-    }
-
-    // synchronized → prevents race condition
-    public synchronized boolean bookRoom(String type) {
-
-        if (rooms.get(type) > 0) {
-            rooms.put(type, rooms.get(type) - 1);
-            return true;
-        }
-        return false;
+        rooms.put("Single", 5);
+        rooms.put("Double", 3);
+        rooms.put("Suite", 2);
     }
 
     public void display() {
-        System.out.println("\nRemaining Inventory: " + rooms);
+        System.out.println("\nCurrent Inventory:");
+        for (String key : rooms.keySet()) {
+            System.out.println(key + ": " + rooms.get(key));
+        }
     }
 }
 
-class BookingTask implements Runnable {
-    private RoomInventory inventory;
-    private String guestName;
-    private String roomType;
+class FilePersistenceService {
+    // Save inventory to file
+    public void save(RoomInventory inventory, String fileName) {
 
-    public BookingTask(RoomInventory inventory, String guestName, String roomType) {
-        this.inventory = inventory;
-        this.guestName = guestName;
-        this.roomType = roomType;
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+
+            for (Map.Entry<String, Integer> entry : inventory.rooms.entrySet()) {
+                writer.write(entry.getKey() + "," + entry.getValue());
+                writer.newLine();
+            }
+
+            System.out.println("Inventory saved successfully.");
+
+        } catch (IOException e) {
+            System.out.println("Error saving data.");
+        }
     }
 
-    @Override
-    public void run() {
+    // Load inventory from file
+    public void load(RoomInventory inventory, String fileName) {
 
-        boolean success = inventory.bookRoom(roomType);
+        File file = new File(fileName);
 
-        if (success) {
-            System.out.println("Booking confirmed for " + guestName +
-                    ", Room: " + roomType);
-        } else {
-            System.out.println("Booking failed for " + guestName +
-                    ", Room not available");
+        if (!file.exists()) {
+            System.out.println("No existing data found. Starting fresh.");
+            return;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+
+            inventory.rooms.clear();
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+
+                String[] parts = line.split(",");
+                inventory.rooms.put(parts[0], Integer.parseInt(parts[1]));
+            }
+
+            System.out.println("Inventory loaded successfully.");
+
+        } catch (IOException e) {
+            System.out.println("Error loading data.");
         }
     }
 }
@@ -70,37 +85,18 @@ class BookingTask implements Runnable {
 public class HotelBookingSystem {
     public static void main(String[] args) {
 
-        System.out.println("Concurrent Booking Simulation\n");
+        String fileName = "inventory.txt";
 
         RoomInventory inventory = new RoomInventory();
+        FilePersistenceService service = new FilePersistenceService();
 
-        // Create threads (simulating multiple users)
-        Thread t1 = new Thread(new BookingTask(inventory, "Adhi", "Single"));
-        Thread t2 = new Thread(new BookingTask(inventory, "Rahul", "Single"));
-        Thread t3 = new Thread(new BookingTask(inventory, "Vanshith", "Single"));
+        // Load previous state
+        service.load(inventory, fileName);
 
-        Thread t4 = new Thread(new BookingTask(inventory, "John", "Suite"));
-        Thread t5 = new Thread(new BookingTask(inventory, "Alex", "Suite"));
-
-        // Start threads
-        t1.start();
-        t2.start();
-        t3.start();
-        t4.start();
-        t5.start();
-
-        // Wait for all threads
-        try {
-            t1.join();
-            t2.join();
-            t3.join();
-            t4.join();
-            t5.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        // Final inventory
+        // Show inventory
         inventory.display();
+
+        // Save current state
+        service.save(inventory, fileName);
     }
 }

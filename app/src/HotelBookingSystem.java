@@ -1,7 +1,7 @@
 /**
  MAIN CLASS: HotelBookingApp
 
- Use Case 2: Basic Room Types & Static Availability
+ Use Case 3: Centralized Room Inventory Management
 
  Description:
  This class represents the entry point of the
@@ -11,8 +11,11 @@
  application startup.
 
  @author Pushkar Rathi
- @version 2.0
+ @version 3.0
  */
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * ABSTRACT CLASS - Room
@@ -63,25 +66,56 @@ abstract class Room {
     }
 }
 
+class RoomInventory {
+    // Maps Room Type Name -> Available Count
+    private Map<String, Integer> roomAvailability;
+
+    public RoomInventory() {
+        roomAvailability = new HashMap<>();
+        initializeInventory();
+    }
+
+    /**
+     * Centralizes inventory setup with default values from your data.
+     */
+    private void initializeInventory() {
+        roomAvailability.put("Single Room", 5);
+        roomAvailability.put("Double Room", 3);
+        roomAvailability.put("Suite Room", 2);
+    }
+
+    public Map<String, Integer> getRoomAvailability() {
+        return roomAvailability;
+    }
+
+    public void updateAvailability(String roomType, int count) {
+        roomAvailability.put(roomType, count);
+    }
+}
+
 public class HotelBookingSystem {
-    public static void main() {
-        SingleRoom[] singleRooms = new SingleRoom[5];
-        DoubleRoom[] doubleRooms = new DoubleRoom[3];
-        SuiteRoom[] suiteRooms = new SuiteRoom[2];
+    public static void main(String[] args) {
+        // 1. Initialize the Centralized Inventory
+        RoomInventory inventory = new RoomInventory();
 
-        // Creating instances
-        for (int i = 0; i < singleRooms.length; i++) singleRooms[i] = new SingleRoom();
-        for (int i = 0; i < doubleRooms.length; i++) doubleRooms[i] = new DoubleRoom();
-        for (int i = 0; i < suiteRooms.length; i++) suiteRooms[i] = new SuiteRoom();
+        // 2. Initialize one instance of each room type to get their characteristics
+        Room single = new SingleRoom();
+        Room doubleRm = new DoubleRoom();
+        Room suite = new SuiteRoom();
 
-        // Example: Displaying details for one of each type
-        System.out.println("Single Room Details");
-        singleRooms[0].displayRoomDetails();
+        System.out.println("--- Hotel Room Inventory Status ---");
 
-        System.out.println("\nDouble Room Details");
-        doubleRooms[0].displayRoomDetails();
+        // 3. Combine Room data with Inventory data for display
+        displayStatus("Single Room", single, inventory);
+        displayStatus("Double Room", doubleRm, inventory);
+        displayStatus("Suite Room", suite, inventory);
+    }
 
-        System.out.println("\nSuite Room Details");
-        suiteRooms[0].displayRoomDetails();
+    private static void displayStatus(String typeName, Room room, RoomInventory inv) {
+        int available = inv.getRoomAvailability().getOrDefault(typeName, 0);
+
+        System.out.println("\n" + typeName + ":");
+        room.displayRoomDetails(); // Shows Beds, Size, and Price
+        System.out.println("Available Rooms: " + available);
     }
 }
